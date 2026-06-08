@@ -1,0 +1,4 @@
+pandas==2.2.3
+requests==2.32.3
+schedule==1.2.2
+colorlog==6.8.2

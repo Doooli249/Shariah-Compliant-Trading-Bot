@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Halal Crypto Bot — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:         #0A0A0F;
+    --card:       #12121A;
+    --border:     #1E1E2E;
+    --text:       #E8E8F0;
+    --muted:      #6B6B80;
+    --green:      #00C896;
+    --red:        #FF4D6D;
+    --gold:       #F5A623;
+    --blue:       #4D9EFF;
+    --card-hover: #1A1A26;
+  }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* ── Top bar ──────────────────────────────────────────── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 28px;
+    border-bottom: 1px solid var(--border);
+    background: var(--card);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .topbar-left { display: flex; align-items: center; gap: 12px; }
+  .topbar-logo { font-size: 20px; }
+  .topbar-title { font-size: 16px; font-weight: 600; letter-spacing: -0.3px; }
+  .topbar-subtitle { font-size: 11px; color: var(--muted); margin-top: 1px; }
+  .topbar-right { display: flex; align-items: center; gap: 20px; }
+
+  .mode-badge {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    background: rgba(0,200,150,0.12);
+    color: var(--green);
+    border: 1px solid rgba(0,200,150,0.25);
+  }
+  .mode-badge.live {
+    background: rgba(255,77,109,0.12);
+    color: var(--red);
+    border-color: rgba(255,77,109,0.25);
+  }
+
+  .refresh-info { font-size: 12px; color: var(--muted); text-align: right; }
+  .refresh-info span { color: var(--text); font-weight: 500; }
+
+  .refresh-btn {
+    background: var(--border);
+    border: 1px solid #2A2A3E;
+    color: var(--text);
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s;
+  }
+  .refresh-btn:hover { background: #252535; }
+
+  /* ── Layout ───────────────────────────────────────────── */
+  .main { padding: 24px 28px; max-width: 1400px; margin: 0 auto; }
+
+  .section-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+    margin-top: 28px;
+  }
+  .section-label:first-child { margin-top: 0; }
+
+  /* ── Portfolio cards (top row) ────────────────────────── */
+  .cards-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+  }
+  .card-label { font-size: 11px; color: var(--muted); font-weight: 500; margin-bottom: 8px; }
+  .card-value { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
+  .card-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  .green { color: var(--green); }
+  .red   { color: var(--red); }
+  .gold  { color: var(--gold); }
+  .blue  { color: var(--blue); }
+
+  /* ── Holdings table ───────────────────────────────────── */
+  .table-wrap {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    padding: 10px 16px;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    background: #0E0E18;
+  }
+  thead th:not(:first-child) { text-align: right; }
+  tbody tr { transition: background 0.1s; }
+  tbody tr:hover { background: var(--card-hover); }
+  tbody td {
+    padding: 12px 16px;
+    font-size: 13px;
+    border-bottom: 1px solid #0E0E18;
+  }
+  tbody td:not(:first-child) { text-align: right; }
+  tbody tr:last-child td { border-bottom: none; }
+
+  .coin-cell { display: flex; align-items: center; gap: 10px; }
+  .coin-icon {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: var(--gold);
+    flex-shrink: 0;
+  }
+  .coin-name { font-weight: 600; }
+  .coin-pair { font-size: 11px; color: var(--muted); }
+
+  .empty-row td {
+    text-align: center !important;
+    color: var(--muted);
+    padding: 32px 16px;
+    font-size: 13px;
+  }
+
+  /* ── Two-col layout ───────────────────────────────────── */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  /* ── Signal log ───────────────────────────────────────── */
+  .log-wrap {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .log-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--muted);
+    background: #0E0E18;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .log-body {
+    max-height: 320px;
+    overflow-y: auto;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 12px;
+  }
+  .log-body::-webkit-scrollbar { width: 4px; }
+  .log-body::-webkit-scrollbar-track { background: transparent; }
+  .log-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .log-entry {
+    padding: 8px 16px;
+    border-bottom: 1px solid #0E0E18;
+    display: grid;
+    grid-template-columns: 85px 72px 1fr auto;
+    gap: 10px;
+    align-items: center;
+    line-height: 1.3;
+  }
+  .log-entry:last-child { border-bottom: none; }
+  .log-time { color: var(--muted); font-size: 11px; }
+
+  .log-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    width: fit-content;
+  }
+  .badge-buy  { background: rgba(0,200,150,0.15); color: var(--green); }
+  .badge-sell { background: rgba(255,77,109,0.15); color: var(--red); }
+  .badge-stop { background: rgba(245,166,35,0.15); color: var(--gold); }
+
+  .log-pair { color: var(--muted); }
+  .log-detail { color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .log-pnl { white-space: nowrap; font-weight: 600; }
+
+  .log-empty {
+    padding: 32px 16px;
+    text-align: center;
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 13px;
+  }
+
+  /* ── Stat cards (bottom row) ──────────────────────────── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 14px;
+  }
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+  .stat-label { font-size: 10px; color: var(--muted); font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 6px; }
+  .stat-value { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
+  .stat-sub   { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+  /* ── Chart ────────────────────────────────────────────── */
+  .chart-wrap {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .chart-title { font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 16px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .chart-canvas { width: 100% !important; height: 180px !important; }
+
+  /* ── Halal compliance panel ───────────────────────────── */
+  .halal-panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .halal-title { font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 16px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .halal-rules { display: flex; flex-direction: column; gap: 8px; }
+  .halal-rule {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--text);
+  }
+  .rule-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    flex-shrink: 0;
+  }
+
+  /* ── Error banner ─────────────────────────────────────── */
+  .error-banner {
+    background: rgba(255,77,109,0.1);
+    border: 1px solid rgba(255,77,109,0.3);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+  }
+  .error-banner h3 { color: var(--red); margin-bottom: 8px; font-size: 14px; }
+  .error-banner p  { color: var(--muted); font-size: 13px; line-height: 1.6; }
+  .error-banner code {
+    background: rgba(255,255,255,0.08);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 12px;
+    color: var(--gold);
+  }
+  .hidden { display: none !important; }
+
+  /* ── Activity log (bot.log) ──────────────────────────── */
+  .activity-wrap {
+    background: #080810;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .activity-header {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    background: #0E0E18;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .activity-header .live-dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    margin-right: 6px;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.3; }
+  }
+  .activity-body {
+    height: 280px;
+    overflow-y: auto;
+    padding: 10px 0;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 11.5px;
+    line-height: 1.6;
+  }
+  .activity-body::-webkit-scrollbar { width: 4px; }
+  .activity-body::-webkit-scrollbar-track { background: transparent; }
+  .activity-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .log-line {
+    padding: 1px 16px;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  .log-line.ll-buy    { color: #00C896; }
+  .log-line.ll-sell   { color: #FF4D6D; }
+  .log-line.ll-block  { color: #FF4D6D; font-weight: 700; }
+  .log-line.ll-error  { color: #FF4D6D; opacity: 0.8; }
+  .log-line.ll-warn   { color: #F5A623; }
+  .log-line.ll-cycle  { color: #4D9EFF; }
+  .log-line.ll-hold   { color: #4A4A60; }
+  .log-line.ll-info   { color: #6B6B80; }
+  .log-line.ll-stop   { color: #F5A623; font-weight: 700; }
+
+  /* ── Divider ──────────────────────────────────────────── */
+  .spacer { margin-top: 14px; }
+
+  @media (max-width: 900px) {
+    .cards-row { grid-template-columns: 1fr 1fr; }
+    .stats-row { grid-template-columns: 1fr 1fr; }
+    .two-col   { grid-template-columns: 1fr; }
+    .main      { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Top bar ──────────────────────────────────────────────────────────── -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="topbar-logo">🕌</div>
+    <div>
+      <div class="topbar-title">Halal Crypto Bot</div>
+      <div class="topbar-subtitle">Paper Trading Dashboard</div>
+    </div>
+    <div class="mode-badge" id="modeBadge">PAPER MODE</div>
+  </div>
+  <div class="topbar-right">
+    <div class="refresh-info">
+      Auto-refresh in <span id="countdown">60</span>s<br>
+      Last updated: <span id="lastUpdated">—</span>
+    </div>
+    <button class="refresh-btn" onclick="loadData()">↻ Refresh</button>
+  </div>
+</div>
+
+<!-- ── Main ─────────────────────────────────────────────────────────────── -->
+<div class="main">
+
+  <!-- Error banner (hidden until needed) -->
+  <div class="error-banner hidden" id="errorBanner">
+    <h3>⚠ Cannot load paper_trades.json</h3>
+    <p id="errorMsg">
+      Your browser blocked the file request due to CORS policy.<br><br>
+      <strong>Fix:</strong> Open a terminal in the <code>cryptohalal-stock-bot/</code> folder and run:<br><br>
+      <code>python3 -m http.server 8080</code><br><br>
+      Then open <code>http://localhost:8080/dashboard/</code> in your browser.
+    </p>
+  </div>
+
+  <!-- ── Portfolio overview ──────────────────────────────────────────── -->
+  <div class="section-label">Portfolio Overview</div>
+  <div class="cards-row">
+    <div class="card">
+      <div class="card-label">Total Value</div>
+      <div class="card-value" id="totalValue">—</div>
+      <div class="card-sub" id="totalValueSub">loading...</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Cash (USD)</div>
+      <div class="card-value" id="cashUsd">—</div>
+      <div class="card-sub" id="cashPct">— of portfolio</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Overall P&amp;L</div>
+      <div class="card-value" id="pnlUsd">—</div>
+      <div class="card-sub" id="pnlPct">vs $100 start</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Open Positions</div>
+      <div class="card-value" id="openPositions">—</div>
+      <div class="card-sub" id="openPositionsSub">—</div>
+    </div>
+  </div>
+
+  <!-- ── Holdings ───────────────────────────────────────────────────── -->
+  <div class="section-label spacer">Current Holdings</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Coin</th>
+          <th>Amount</th>
+          <th>Entry Price</th>
+          <th>Current Price</th>
+          <th>Value (USD)</th>
+          <th>P&amp;L</th>
+          <th>Entry Time</th>
+        </tr>
+      </thead>
+      <tbody id="holdingsBody">
+        <tr class="empty-row"><td colspan="7">Waiting for first trade...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── Two-column: log + chart ────────────────────────────────────── -->
+  <div class="section-label spacer">Trade Activity</div>
+  <div class="two-col">
+    <div class="log-wrap">
+      <div class="log-header">
+        <span>Recent Trades</span>
+        <span id="tradeCount" style="font-weight:400;color:var(--muted)">0 total</span>
+      </div>
+      <div class="log-body" id="tradeLog">
+        <div class="log-empty">No trades yet — bot is running in HOLD mode.</div>
+      </div>
+    </div>
+    <div class="chart-wrap">
+      <div class="chart-title">Equity Curve</div>
+      <canvas id="equityChart" class="chart-canvas"></canvas>
+    </div>
+  </div>
+
+  <!-- ── Performance stats ──────────────────────────────────────────── -->
+  <div class="section-label spacer">Performance</div>
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">Total Trades</div>
+      <div class="stat-value" id="statTotal">0</div>
+      <div class="stat-sub" id="statBuySell">0 buys / 0 sells</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Win Rate</div>
+      <div class="stat-value" id="statWinRate">—</div>
+      <div class="stat-sub" id="statWinSub">of closed trades</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Best Trade</div>
+      <div class="stat-value green" id="statBestTrade">—</div>
+      <div class="stat-sub" id="statBestSub">P&amp;L</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Worst Trade</div>
+      <div class="stat-value red" id="statWorstTrade">—</div>
+      <div class="stat-sub" id="statWorstSub">P&amp;L</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Stop Losses</div>
+      <div class="stat-value gold" id="statStopLoss">0</div>
+      <div class="stat-sub">triggered so far</div>
+    </div>
+  </div>
+
+  <!-- ── Activity log ──────────────────────────────────────────────── -->
+  <div class="section-label spacer">Bot Activity Log</div>
+  <div class="activity-wrap">
+    <div class="activity-header">
+      <span><span class="live-dot"></span>Live terminal output — last 100 lines from bot.log</span>
+      <span id="logLineCount" style="font-weight:400">—</span>
+    </div>
+    <div class="activity-body" id="activityBody">
+      <div class="log-line ll-info">Loading bot.log...</div>
+    </div>
+  </div>
+
+  <!-- ── Bottom: equity chart full width + halal panel ─────────────── -->
+  <div class="section-label spacer">Compliance &amp; Rules</div>
+  <div class="halal-panel">
+    <div class="halal-title">🕌 Halal Guard — Active Rules</div>
+    <div class="halal-rules">
+      <div class="halal-rule"><div class="rule-dot"></div>Spot trading only — no margin, leverage, or short selling</div>
+      <div class="halal-rule"><div class="rule-dot"></div>No derivatives, futures, options, or interest-bearing instruments</div>
+      <div class="halal-rule"><div class="rule-dot"></div>No staking rewards or yield-bearing positions</div>
+      <div class="halal-rule"><div class="rule-dot"></div>No averaging down — one position per coin at a time</div>
+      <div class="halal-rule"><div class="rule-dot"></div>Max 25% of portfolio per single coin</div>
+      <div class="halal-rule"><div class="rule-dot"></div>20 pre-screened halal utility coins only (BTC, ETH, SOL, ADA, DOT…)</div>
+      <div class="halal-rule"><div class="rule-dot"></div>8% stop loss enforced on every position</div>
+      <div class="halal-rule"><div class="rule-dot"></div>Trend filter: only buy above 200-period EMA (avoids bear-market dips)</div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+let equityChart = null;
+let countdownVal = 60;
+let countdownTimer = null;
+const STARTING_BALANCE = 100.0;
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const fmt  = (n, dp=2) => n == null ? '—' : n.toLocaleString('en-US', {minimumFractionDigits: dp, maximumFractionDigits: dp});
+const fmtD = (n, dp=2) => {
+  if (n == null) return '—';
+  const s = (n >= 0 ? '+' : '') + fmt(n, dp);
+  return s;
+};
+const fmtUSD = (n) => n == null ? '—' : '$' + fmt(n, 2);
+const fmtPct = (n) => n == null ? '—' : fmtD(n, 2) + '%';
+
+function setColor(el, n) {
+  el.classList.remove('green', 'red', 'gold');
+  if (n > 0) el.classList.add('green');
+  else if (n < 0) el.classList.add('red');
+}
+
+function localTime(isoStr) {
+  if (!isoStr) return '—';
+  const d = new Date(isoStr);
+  return d.toLocaleString('en-US', {
+    month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: false
+  });
+}
+
+// ── Load data ─────────────────────────────────────────────────────────────────
+async function loadData() {
+  try {
+    const res = await fetch('../paper_trades.json?t=' + Date.now());
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    document.getElementById('errorBanner').classList.add('hidden');
+    render(data);
+    document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+  } catch (err) {
+    showError(err);
+  }
+  loadActivityLog();
+}
+
+// ── Activity log ──────────────────────────────────────────────────────────────
+async function loadActivityLog() {
+  const body = document.getElementById('activityBody');
+  try {
+    const res = await fetch('../bot.log?t=' + Date.now());
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+
+    // Strip ANSI escape codes
+    const clean = text.replace(/\x1B\[[0-9;]*m/g, '');
+
+    // Take last 100 non-empty lines
+    const lines = clean.split('\n').filter(l => l.trim().length > 0);
+    const recent = lines.slice(-100);
+
+    document.getElementById('logLineCount').textContent = `${lines.length} lines total`;
+
+    body.innerHTML = recent.map(line => {
+      const cls = classifyLine(line);
+      const escaped = line.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      return `<div class="log-line ${cls}">${escaped}</div>`;
+    }).join('');
+
+    // Auto-scroll to bottom
+    body.scrollTop = body.scrollHeight;
+  } catch (err) {
+    body.innerHTML = `<div class="log-line ll-warn">Could not load bot.log — make sure the bot has run at least once (${err.message})</div>`;
+  }
+}
+
+function classifyLine(line) {
+  const l = line.toLowerCase();
+  if (l.includes('⛔') || l.includes('stop loss'))          return 'll-stop';
+  if (l.includes('🚫') || l.includes('halal block'))        return 'll-block';
+  if (l.includes('buy:') || l.includes('] buy'))            return 'll-buy';
+  if (l.includes('sell:') || l.includes('] sell'))          return 'll-sell';
+  if (l.includes('error') || l.includes('critical'))        return 'll-error';
+  if (l.includes('warning') || l.includes('warn'))          return 'll-warn';
+  if (l.includes('cycle') || l.includes('scheduler'))       return 'll-cycle';
+  if (l.includes('hold:') || l.includes('] hold'))          return 'll-hold';
+  return 'll-info';
+}
+
+function showError(err) {
+  const banner = document.getElementById('errorBanner');
+  banner.classList.remove('hidden');
+  if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError') || err.message.includes('CORS') || err.message.includes('Load failed')) {
+    document.getElementById('errorMsg').innerHTML = `
+      Your browser blocked the file request due to CORS restrictions on <code>file://</code> protocol.<br><br>
+      <strong>Fix:</strong> Open a terminal in the <code>cryptohalal-stock-bot/</code> folder and run:<br><br>
+      <code>python3 -m http.server 8080</code><br><br>
+      Then open <code>http://localhost:8080/dashboard/</code> in your browser.
+    `;
+  } else if (err.message.includes('404') || err.message.includes('Cannot find')) {
+    document.getElementById('errorMsg').innerHTML = `
+      <code>paper_trades.json</code> not found. The bot hasn't run yet or is in a different directory.<br><br>
+      Make sure <code>bot.py</code> has been started at least once from the <code>cryptohalal-stock-bot/</code> folder.
+    `;
+  } else {
+    document.getElementById('errorMsg').textContent = `Error: ${err.message}`;
+  }
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function render(data) {
+  const cash     = data.cash_usd ?? 0;
+  const holdings = data.holdings ?? {};
+  const trades   = data.trades ?? [];
+
+  // Estimate current prices from most recent trade per pair
+  const lastPrices = {};
+  for (const t of trades) {
+    const coin = t.pair ? t.pair.split('-')[0] : null;
+    if (coin) lastPrices[coin] = t.price ?? 0;
+  }
+
+  // Total holdings value
+  let holdingsValue = 0;
+  for (const [coin, h] of Object.entries(holdings)) {
+    const price = lastPrices[coin] ?? 0;
+    holdingsValue += (h.amount ?? 0) * price;
+  }
+  const totalValue = cash + holdingsValue;
+  const pnl        = totalValue - STARTING_BALANCE;
+  const pnlPct     = (pnl / STARTING_BALANCE) * 100;
+  const cashPct    = totalValue > 0 ? (cash / totalValue) * 100 : 100;
+  const openCount  = Object.keys(holdings).length;
+
+  // ── Portfolio cards ──────────────────────────────────────────────────
+  const tvEl = document.getElementById('totalValue');
+  tvEl.textContent = fmtUSD(totalValue);
+  setColor(tvEl, pnl);
+  document.getElementById('totalValueSub').textContent = `Starting: ${fmtUSD(STARTING_BALANCE)}`;
+
+  document.getElementById('cashUsd').textContent = fmtUSD(cash);
+  document.getElementById('cashPct').textContent = `${fmt(cashPct, 1)}% of portfolio`;
+
+  const pnlEl = document.getElementById('pnlUsd');
+  pnlEl.textContent = (pnl >= 0 ? '+' : '') + fmtUSD(Math.abs(pnl));
+  pnlEl.className = 'card-value ' + (pnl >= 0 ? 'green' : 'red');
+  document.getElementById('pnlPct').textContent = fmtPct(pnlPct) + ' vs $100 start';
+
+  document.getElementById('openPositions').textContent = openCount;
+  document.getElementById('openPositionsSub').textContent = openCount === 1 ? '1 coin open' : `${openCount} coins open`;
+
+  // ── Holdings table ───────────────────────────────────────────────────
+  const tbody = document.getElementById('holdingsBody');
+  if (openCount === 0) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="7">No open positions — cash only.</td></tr>';
+  } else {
+    tbody.innerHTML = Object.entries(holdings).map(([coin, h]) => {
+      const currentPrice = lastPrices[coin] ?? 0;
+      const amount       = h.amount ?? 0;
+      const entry        = h.entry_price ?? 0;
+      const value        = amount * currentPrice;
+      const pnlU         = entry > 0 ? value - (amount * entry) : 0;
+      const pnlP         = entry > 0 ? (currentPrice - entry) / entry * 100 : 0;
+      const sign         = pnlU >= 0 ? '+' : '';
+      const pnlClass     = pnlU >= 0 ? 'green' : 'red';
+      const initials     = coin.slice(0,3);
+      return `
+        <tr>
+          <td>
+            <div class="coin-cell">
+              <div class="coin-icon">${initials}</div>
+              <div>
+                <div class="coin-name">${coin}</div>
+                <div class="coin-pair">${coin}-USD</div>
+              </div>
+            </div>
+          </td>
+          <td>${fmt(amount, 6)}</td>
+          <td>${entry > 0 ? fmtUSD(entry) : '—'}</td>
+          <td>${currentPrice > 0 ? fmtUSD(currentPrice) : '—'}</td>
+          <td>${fmtUSD(value)}</td>
+          <td class="${pnlClass}">${sign}${fmtUSD(Math.abs(pnlU))} (${sign}${fmt(pnlP,2)}%)</td>
+          <td style="color:var(--muted);font-size:12px">${localTime(h.entry_time)}</td>
+        </tr>`;
+    }).join('');
+  }
+
+  // ── Trade log ────────────────────────────────────────────────────────
+  const sells = trades.filter(t => t.action === 'SELL');
+  const buys  = trades.filter(t => t.action === 'BUY');
+  document.getElementById('tradeCount').textContent = `${trades.length} total`;
+
+  const logEl = document.getElementById('tradeLog');
+  const recent = [...trades].reverse().slice(0, 50);
+  if (recent.length === 0) {
+    logEl.innerHTML = '<div class="log-empty">No trades yet — bot is running in HOLD mode.</div>';
+  } else {
+    logEl.innerHTML = recent.map(t => {
+      const isStop  = t.reason && t.reason.toLowerCase().includes('stop loss');
+      const isBuy   = t.action === 'BUY';
+      const badgeClass = isStop ? 'badge-stop' : (isBuy ? 'badge-buy' : 'badge-sell');
+      const badgeText  = isStop ? '⛔ STOP' : t.action;
+      const pnlStr = t.pnl_usd != null
+        ? `<span class="${t.pnl_usd >= 0 ? 'green' : 'red'}">${fmtD(t.pnl_usd)} (${fmtD(t.pnl_pct)}%)</span>`
+        : '';
+      const detail = isBuy
+        ? `@ ${fmtUSD(t.price)} — $${fmt(t.usd_spent)} spent`
+        : `@ ${fmtUSD(t.price)} → $${fmt(t.usd_received)}`;
+      return `
+        <div class="log-entry">
+          <span class="log-time">${localTime(t.timestamp)}</span>
+          <span><span class="log-badge ${badgeClass}">${badgeText}</span></span>
+          <span class="log-pair">${t.pair ?? '—'}</span>
+          <span class="log-pnl">${pnlStr || detail}</span>
+        </div>`;
+    }).join('');
+  }
+
+  // ── Stats ────────────────────────────────────────────────────────────
+  document.getElementById('statTotal').textContent = trades.length;
+  document.getElementById('statBuySell').textContent = `${buys.length} buys / ${sells.length} sells`;
+
+  const sellPnls = sells.map(t => t.pnl_usd ?? 0);
+  const wins = sellPnls.filter(p => p > 0).length;
+  const winRate = sells.length > 0 ? (wins / sells.length * 100) : null;
+  document.getElementById('statWinRate').textContent = winRate != null ? fmt(winRate, 0) + '%' : '—';
+  document.getElementById('statWinSub').textContent = sells.length > 0 ? `${wins}/${sells.length} closed trades` : 'no closed trades';
+
+  if (sellPnls.length > 0) {
+    const best  = Math.max(...sellPnls);
+    const worst = Math.min(...sellPnls);
+    const bestEl  = document.getElementById('statBestTrade');
+    const worstEl = document.getElementById('statWorstTrade');
+    bestEl.textContent  = (best >= 0 ? '+' : '') + fmtUSD(Math.abs(best));
+    worstEl.textContent = (worst >= 0 ? '+' : '') + fmtUSD(Math.abs(worst));
+    const bestTrade  = sells.find(t => (t.pnl_usd ?? 0) === best);
+    const worstTrade = sells.find(t => (t.pnl_usd ?? 0) === worst);
+    document.getElementById('statBestSub').textContent  = bestTrade?.pair ?? 'P&L';
+    document.getElementById('statWorstSub').textContent = worstTrade?.pair ?? 'P&L';
+  }
+
+  const stopCount = sells.filter(t => t.reason && t.reason.toLowerCase().includes('stop loss')).length;
+  document.getElementById('statStopLoss').textContent = stopCount;
+
+  // ── Equity curve ─────────────────────────────────────────────────────
+  buildEquityChart(trades);
+}
+
+// ── Equity chart ──────────────────────────────────────────────────────────────
+function buildEquityChart(trades) {
+  const points = [{ x: 'Start', y: STARTING_BALANCE }];
+  for (const t of trades) {
+    if (t.portfolio_value_after != null) {
+      points.push({ x: localTime(t.timestamp), y: t.portfolio_value_after });
+    }
+  }
+
+  const labels = points.map(p => p.x);
+  const values = points.map(p => p.y);
+  const startVal = STARTING_BALANCE;
+  const lastVal  = values[values.length - 1] ?? startVal;
+  const lineColor = lastVal >= startVal ? '#00C896' : '#FF4D6D';
+
+  if (equityChart) {
+    equityChart.data.labels = labels;
+    equityChart.data.datasets[0].data = values;
+    equityChart.data.datasets[0].borderColor = lineColor;
+    equityChart.data.datasets[0].backgroundColor = lineColor + '18';
+    equityChart.update('none');
+    return;
+  }
+
+  const ctx = document.getElementById('equityChart').getContext('2d');
+  equityChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        borderColor: lineColor,
+        backgroundColor: lineColor + '18',
+        borderWidth: 2,
+        pointRadius: values.length < 20 ? 3 : 0,
+        pointHoverRadius: 5,
+        fill: true,
+        tension: 0.3,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ' $' + fmt(ctx.parsed.y, 2),
+          },
+          backgroundColor: '#1E1E2E',
+          borderColor: '#2A2A3E',
+          borderWidth: 1,
+          titleColor: '#6B6B80',
+          bodyColor: '#E8E8F0',
+          padding: 10,
+        },
+      },
+      scales: {
+        x: {
+          ticks: {
+            color: '#6B6B80',
+            maxTicksLimit: 6,
+            font: { size: 10 },
+          },
+          grid: { color: '#1E1E2E' },
+          border: { color: '#1E1E2E' },
+        },
+        y: {
+          ticks: {
+            color: '#6B6B80',
+            callback: v => '$' + fmt(v, 0),
+            font: { size: 10 },
+          },
+          grid: { color: '#1E1E2E' },
+          border: { color: '#1E1E2E' },
+        },
+      },
+    },
+  });
+}
+
+// ── Countdown & auto-refresh ──────────────────────────────────────────────────
+function startCountdown() {
+  countdownVal = 60;
+  clearInterval(countdownTimer);
+  countdownTimer = setInterval(() => {
+    countdownVal--;
+    document.getElementById('countdown').textContent = countdownVal;
+    if (countdownVal <= 0) {
+      loadData();
+      countdownVal = 60;
+    }
+  }, 1000);
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+loadData();
+startCountdown();
+</script>
+</body>
+</html>

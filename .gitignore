@@ -1,0 +1,60 @@
+# Environment variables & secrets
+.env
+.env.local
+.env.*.local
+
+# Config files with credentials
+config.py
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+*.log.*
+
+# API keys & credentials
+*.key
+*.pem
+*.p12
+secrets/
+
+# Local data files
+*.json
+!requirements.txt
